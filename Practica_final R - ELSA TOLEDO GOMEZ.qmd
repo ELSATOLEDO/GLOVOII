@@ -1,0 +1,265 @@
+---
+title: "practica_final"
+format: html
+editor: visual
+---
+
+Vamos a utilizar el dataset de semillas que se encuentra aquí: https://archive.ics.uci.edu/ml/datasets/seeds#
+
+Primero vamos a descargarnos el dataset con el siguiente comando:
+
+```{r}
+library(tidyverse)
+df_seeds <- read.table('https://archive.ics.uci.edu/ml/machine-learning-databases/00236/seeds_dataset.txt', col.names =c('area','perimetro','compacto','longitud','anchura','coeficient.asimetria','longitud.ranura','tipo'))
+```
+
+```{r}
+summary(df_seeds)
+
+```
+
+```{r}
+head(df_seeds)
+
+```
+
+```{r}
+colnames(df_seeds)
+
+```
+
+```{r}
+df_seeds$tipo
+
+```
+
+#### PREGUNTA 1 (0.5pt)
+
+¿Cuantas filas y cuantas columnas tiene el dataframe df_seeds?
+
+**Respuesta**:
+
+```{r}
+num_filas <- nrow(df_seeds)
+num_columnas <- ncol(df_seeds)
+
+print(paste("El número de filas es:", num_filas))
+print(paste("El número de columnas es:", num_columnas))
+
+```
+
+#### PREGUNTA 2 (0.5pt)
+
+Vamos a convertir en factor la columna tipo. Vamos a reemplazar los números por su correspondiente etiqueta (label). La correspondencia entre el código y el tipo es:
+
+-   1 - Kama
+-   2 - Rosa
+-   3 - Canadian
+
+Convierte en factor la columna tipo, respetando las etiquetas:
+
+**Respuesta**:
+
+```{r}
+datos <- data.frame(
+  tipo = factor(c("1", "2", "3"))
+)
+levels(datos$tipo) <- c("Kama","Rosa", "Canadian")
+print(levels(datos$tipo))
+datos_tipo <- datos[datos$tipo == "tipo", ]
+datos_tipo
+head(datos)
+
+```
+
+```{r}
+df_seeds$tipo <- as.factor(df_seeds$tipo)
+df_seeds$tipo = factor(df_seeds$tipo, levels=levels(df_seeds$tipo), labels=c("Kama", "Rosa", "Canadian"), ordered=F)
+str(df_seeds$tipo)
+table(df_seeds$tipo)
+
+```
+
+#### PREGUNTA 3 (1pt)
+
+¿Cual es la media del area de cada uno de los tipos?
+
+**Respuesta**
+
+```{r}
+#mean(df_seeds$area) # media total del area
+df_seeds_Kama <- df_seeds[df_seeds$tipo == "Kama", ]
+df_seeds_Rosa <- df_seeds[df_seeds$tipo == "Rosa", ]
+df_seeds_Canadian <- df_seeds[df_seeds$tipo == "Canadian", ]
+
+mean(df_seeds_Kama$area)
+mean(df_seeds_Rosa$area)
+mean(df_seeds_Canadian$area)
+
+paste("La media del área del Tipo 1-Kama es:", mean(df_seeds_Kama$area))
+paste("La media del área del Tipo 2-Rosa es:", mean(df_seeds_Rosa$area))
+paste("La media del área del Tipo 3-Canadian es:", mean(df_seeds_Canadian$area))
+
+
+```
+
+#### PREGUNTA 4 (0.5pt)
+
+¿Como se llama el siguiente tipo de gráfico?. ¿Qué representa la línea del centro de la caja?
+
+```{r}
+ggplot(df_seeds, aes(x=tipo, y=area)) + geom_boxplot()
+```
+
+**Respuesta**: Es un diagrama de caja o boxplot. Representa gráficamente una serie de datos numéricos a través de sus cuartiles. La caja representa el 50% de los datos centrales y la línea del centro de la caja representa la mediana. Una mitad de los datos está por debajo de la mediana y la otra mitad por encima. Si los datos son simétricos, la mediana estará en el centro de la caja. Si los datos son sesgados, la mediana estará más cerca de la parte superior o inferior de la caja.
+
+El extremo inferior de la caja representa el primer cuartil y el extremo superior de la caja es el tercer cuartil. En estos extremos es donde están la otra mitad de los datos (25% inferior y 25% superior), ya que el otro 50% de los datos estan en la caja.
+
+#### PREGUNTA 5 (1.5pt)
+
+¿Como pintarías un diagrama de puntos (o scatterplot) con ggplot con las siguientes características? - En el eje X la variable compacto - En el eje Y la variable area - Cada tipo de semilla debería tener un color diferente
+
+**Respuesta**:
+
+```{r}
+library(ggplot2)
+ggplot(df_seeds, aes(x=compacto, y=area, color=tipo)) + geom_point() + xlab("Grado de crecimiento - Compacto") + ylab("Área") + ggtitle("Comparación crecimiento vs área según tipo semilla")
+
+```
+
+#### PREGUNTA 6 (0.5pt)
+
+¿Qué hace la siguiente línea?:
+
+```{r}
+library(dplyr)
+df_seeds |> mutate(is_kama = tipo=='Kama') -> df_seeds
+df_seeds
+```
+
+**Respuesta**: Este código agrega una nueva columna a 'df_seeds' que indica si el tipo de semilla es o no es del tipo 'kama'.
+
+#### PREGUNTA 7 (1.5pt)
+
+Vamos a dividir el conjunto de datos en test y training porque vamos a entrenar un modelo que me permita diferenciar si una semilla es de tipo Kama o no. ¿Por qué es aconsejable dividir el dataset en los grupos de train y test?
+
+```{r}
+set.seed(123) # Este set.seed hace que a todos nos generen los mismos número aleatorios
+idx <- sample(1:nrow(df_seeds), 0.7*nrow(df_seeds))
+df_seeds_train <- df_seeds[idx,]
+df_seeds_test <- df_seeds[-idx,]
+```
+
+```{r}
+nrow(df_seeds_train)
+nrow(df_seeds_test)
+
+```
+
+**Respuesta**: Dividir el conjunto de datos en conjuntos de entrenamiento y prueba es esencial para modelar con precisión.
+
+El conjunto de entrenamiento (train) se utiliza para entrenar el modelo.
+
+El conjunto de prueba (test) se reserva para evaluar su rendimiento en datos no vistos, se evalúa si el modelo está haciendo sus predicciones correctamente.
+
+Esta división ayuda a evitar el sobreajuste al modelo y proporciona una estimación más realista de su capacidad para generalizar a nuevos datos.
+
+#### PREGUNTA 8 (1pt)
+
+Vamos a crear un modelo para realizar una clasificación binaria, donde le pasaremos como entrada las columnas: area, perimetro, compacto, longitud, coeficient.asimetria y longitud.ranura
+
+¿Qué tipo de algoritmo o modelo debería usar?
+
+**Respuesta**: Para realizar una clasificación binaria con las columnas que se han elegido, se puede utilizar el algoritmo de regresión logística.
+
+```{r}
+# Crear un conjunto de datos solo con las columnas relevantes
+df <- df_seeds[, c("area", "perimetro", "compacto", "longitud", "coeficient.asimetria", "longitud.ranura")]
+
+```
+
+#### PREGUNTA 9 (1pt)
+
+Crea un modelo que me permita clasificar si una semilla es de tipo Kama o no con las siguientes columnas: area, perimetro, compacto, longitud, coeficient.asimetria, longitud.ranura
+
+**Respuesta**:
+
+```{r}
+
+# Crear un conjunto de datos solo con las columnas relevantes
+df <- df_seeds[, c("area", "perimetro", "compacto", "longitud", "coeficient.asimetria", "longitud.ranura")]
+
+# Paso 1: Dividir los datos en conjuntos de entrenamiento y prueba
+set.seed(123)  # Para reproducibilidad
+idx <- sample(nrow(df), 0.7 * nrow(df))  # Índices para datos de entrenamiento (70%)
+datos_train <- df[idx, ]  # Datos de entrenamiento
+datos_test <- df[-idx, ]  # Datos de prueba
+
+# Paso 2: Crear el modelo de regresión logística
+model <- glm(tipo ~ ., data = datos_train, family = binomial)
+
+# Paso 3: Evaluar el modelo
+predicciones <- predict(model, newdata = datos_test, type = "response")
+predicciones_binarias <- ifelse(predicciones > 0.5, "Kama", "No Kama")
+
+# Paso 4: Calcular la precisión del modelo
+precision <- mean(predicciones_binarias == datos_test$tipo)
+cat("Precisión del modelo:", precision)
+```
+
+De aquí ya no paso....
+
+#### PREGUNTA 10 (1pt)
+
+Si usamos un umbral de 0 en la salida del modelo (lo que equivale a probabilidad de 0.5 cuando usamos el predict con type='response') ¿Cuales son los valores de precisión y exhausitividad?
+
+**Respuesta**.
+
+```{r}
+# Cargamos las librerías necesarias
+library(glmnet)   # Para la regresión logística
+
+# Crear un conjunto de datos solo con las columnas relevantes y la variable de respuesta "tipo"
+df <- df_seeds[, c("area", "perimetro", "compacto", "longitud", "coeficient.asimetria", "longitud.ranura", "tipo")]
+
+# Convertir la variable de respuesta a un formato numérico (0 para No Kama, 1 para Kama)
+df$tipo_Num <- ifelse(df$tipo == "Kama", 1, 0)
+
+# Dividir los datos en conjuntos de entrenamiento y prueba // 
+#idx <- sample(1:nrow(powerplant), nrow(powerplant)*0.7)
+set.seed(123)
+idx_1 <- split(df$tipo_Num, 0.7)
+train_data <- subset(df, df$tipo_Num == TRUE)
+test_data <- subset(df, df$tipo_Num == FALSE)
+
+# Entrenar un modelo de regresión logística
+model_logistico <- glm(tipo_Num ~ ., data = train_data, family = binomial)
+
+# Realizar predicciones en el conjunto de prueba
+predicciones <- predict(model_logistico, newdata = test_data, type = "response")
+
+# Convertir las probabilidades predichas en etiquetas de clase (0 para No Kama, 1 para Kama)
+predicciones_etiquetas <- ifelse(predicciones > 0.5, 1, 0)
+
+# Calcular la precisión del modelo
+precision <- mean(predicciones_etiquetas == test_data$tipo_Num)
+print(precision)
+```
+
+Intento crear el modelo logísto pero de ahi no paso....
+
+#### PREGUNTA 11 (1.5pt)
+
+¿Qué están haciendo las siguientes líneas?
+
+```{r}
+set.seed(123)
+cl<-df_seeds |> select(area,perimetro,compacto,longitud,anchura,coeficient.asimetria,longitud.ranura) |> kmeans(3)
+table(real=df_seeds$tipo,cluster=cl$cluster)
+```
+
+**Respuesta**: Primero establece la semilla para reproducibilidad: set.seed(123)
+
+Después ejecuta los k-means en los datos seleccionados: cl \<- df_seeds \|\> select(area, perimetro, compacto, longitud, anchura, coeficient.asimetria, longitud.ranura) \|\> kmeans(3)
+
+Y, por último, crea una tabla de contingencia entre los grupos obtenidos por k-means y las etiquetas reales: tabla_contingencia \<- table(real = df_seeds\$tipo, cluster = cl\$cluster) print(tabla_contingencia)
